@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Bhaghel Ji</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --sidebar: #0F0F0F; --gold: #F59E0B; }
+        body { font-family: 'Segoe UI', sans-serif; background: #F3F4F6; }
+        .nav-item.active { background: #1F1F1F; color: var(--gold); border-right: 3px solid var(--gold); }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- SIDEBAR (Mobile Responsive) -->
+    <aside id="sidebar" class="w-64 bg-black text-gray-400 flex flex-col transition-all duration-300 hidden md:flex h-full fixed md:relative z-50">
+        <div class="p-6">
+            <h1 class="text-2xl font-bold text-white tracking-wider">BHAGHEL<span class="text-yellow-500">JI</span></h1>
+            <p class="text-xs mt-1 opacity-50">ADMIN DASHBOARD</p>
+        </div>
+        <nav class="flex-1 mt-6 space-y-1">
+            <button onclick="nav('orders')" id="nav-orders" class="nav-item w-full text-left px-6 py-4 hover:bg-white/5 flex gap-3 active"><i class="fa-solid fa-box w-5"></i> Orders</button>
+            <button onclick="nav('products')" id="nav-products" class="nav-item w-full text-left px-6 py-4 hover:bg-white/5 flex gap-3"><i class="fa-solid fa-tag w-5"></i> Products</button>
+            <button onclick="nav('banners')" id="nav-banners" class="nav-item w-full text-left px-6 py-4 hover:bg-white/5 flex gap-3"><i class="fa-solid fa-images w-5"></i> Banners</button>
+            <button onclick="nav('reviews')" id="nav-reviews" class="nav-item w-full text-left px-6 py-4 hover:bg-white/5 flex gap-3"><i class="fa-solid fa-star w-5"></i> Reviews</button>
+        </nav>
+        <button onclick="document.getElementById('sidebar').classList.add('hidden')" class="md:hidden p-4 text-center text-red-500">Close Menu</button>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col overflow-hidden relative w-full">
+        <!-- Mobile Header -->
+        <header class="md:hidden bg-black text-white p-4 flex justify-between items-center z-40 shadow-md">
+            <span class="font-bold">BHAGHEL JI</span>
+            <button onclick="document.getElementById('sidebar').classList.remove('hidden')"><i class="fa-solid fa-bars"></i></button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-8">
+            
+            <!-- 📦 ORDERS TAB -->
+            <div id="tab-orders">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Live Orders</h2>
+                <div class="space-y-4" id="orders-list"></div>
+            </div>
+
+            <!-- 🍔 PRODUCTS TAB -->
+            <div id="tab-products" class="hidden space-y-6">
+                <h2 class="text-2xl font-bold text-gray-800">Products</h2>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input id="p-name" placeholder="Name" class="border p-3 rounded bg-gray-50">
+                    <input id="p-price" type="number" placeholder="Price" class="border p-3 rounded bg-gray-50">
+                    <input id="p-img" placeholder="Image URL" class="border p-3 rounded bg-gray-50 md:col-span-2">
+                    <textarea id="p-desc" placeholder="Desc" class="border p-3 rounded bg-gray-50 md:col-span-2"></textarea>
+                    <button onclick="addProduct()" class="bg-black text-white py-3 rounded font-bold md:col-span-2">ADD PRODUCT</button>
+                </div>
+                <div id="products-list" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
+            </div>
+
+            <!-- 🖼️ BANNERS TAB -->
+            <div id="tab-banners" class="hidden space-y-6">
+                <h2 class="text-2xl font-bold text-gray-800">Banners</h2>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-3">
+                    <input id="b-img" placeholder="Banner Image URL" class="border p-3 rounded flex-1 bg-gray-50">
+                    <input id="b-link" placeholder="Redirect Link (Optional)" class="border p-3 rounded flex-1 bg-gray-50">
+                    <button onclick="addBanner()" class="bg-yellow-500 text-black font-bold px-6 rounded">ADD</button>
+                </div>
+                <div id="banners-list" class="space-y-3"></div>
+            </div>
+
+            <!-- ⭐ REVIEWS TAB -->
+            <div id="tab-reviews" class="hidden space-y-6">
+                <h2 class="text-2xl font-bold text-gray-800">User Reviews</h2>
+                <div id="admin-reviews-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Firebase Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, push, onValue, update, remove, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+  apiKey: "AIzaSyBIM-xshgfARBl1kTYLmWDNd_M3-R6CdNQ",
+  authDomain: "pro-tournamnet.firebaseapp.com",
+  databaseURL: "https://pro-tournamnet-default-rtdb.firebaseio.com",
+  projectId: "pro-tournamnet",
+  storageBucket: "pro-tournamnet.firebasestorage.app",
+  messagingSenderId: "538341014492",
+  appId: "1:538341014492:web:1ecde24f3feec3bb5f6d19"
+};
+
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        window.nav = (tab) => {
+            document.querySelectorAll('div[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            if(window.innerWidth < 768) document.getElementById('sidebar').classList.add('hidden');
+        }
+
+        // --- ORDERS (FIXED RIDER LOGIC) ---
+        onValue(ref(db, 'orders'), (snapshot) => {
+            const list = document.getElementById('orders-list');
+            list.innerHTML = "";
+            const data = snapshot.val();
+            if(data) {
+                Object.entries(data).reverse().forEach(([key, order]) => {
+                    const mapLink = order.mapLink ? `<a href="${order.mapLink}" target="_blank" class="text-blue-600 underline text-xs"><i class="fa-solid fa-map-location-dot"></i> Open Map</a>` : '';
+                    const riderBadge = (order.status === 'Out for Delivery' && order.riderName) 
+                        ? `<div class="mt-2 text-xs bg-orange-100 text-orange-800 p-2 rounded"><strong>Rider:</strong> ${order.riderName} (${order.riderPhone})</div>` : '';
+
+                    list.innerHTML += `
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div class="p-4 flex flex-col md:flex-row gap-4">
+                                <img src="${order.productImg}" class="w-16 h-16 rounded bg-gray-50 object-cover">
+                                <div class="flex-1">
+                                    <h4 class="font-bold">${order.productName}</h4>
+                                    <div class="text-xs text-gray-500">₹${order.price} • ${order.userName} • ${order.phone}</div>
+                                    <div class="text-xs text-gray-400 mt-1">${order.address}</div>
+                                    ${mapLink}
+                                </div>
+                                <div class="md:w-64 flex flex-col gap-2">
+                                    <div class="flex justify-between">
+                                        <span class="px-2 py-1 rounded text-xs font-bold bg-gray-100">${order.status}</span>
+                                        <button onclick="remove(ref(db, 'orders/${key}'))" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
+                                    </div>
+                                    <select onchange="handleStatus('${key}', this.value)" class="text-xs border p-2 rounded bg-gray-50">
+                                        <option value="" disabled selected>Change Status</option>
+                                        <option value="Packed">Packed</option>
+                                        <option value="Shipped">Shipped</option>
+                                        <option value="Out for Delivery">Out for Delivery</option>
+                                        <option value="Delivered">Delivered</option>
+                                    </select>
+                                    ${riderBadge}
+                                </div>
+                            </div>
+                          <!-- MOBILE + PC FIXED RIDER FORM -->
+<div id="rider-form-${key}" 
+     class="hidden bg-gray-900 p-4 relative z-10">
+
+    <!-- Inputs -->
+    <div class="flex flex-col md:flex-row gap-2">
+        <input id="r-name-${key}" 
+               placeholder="Rider Name"
+               class="flex-1 p-2 rounded text-xs bg-gray-800 text-white border border-gray-700">
+
+        <input id="r-phone-${key}" 
+               placeholder="Phone"
+               class="flex-1 p-2 rounded text-xs bg-gray-800 text-white border border-gray-700">
+    </div>
+
+    <!-- Confirm Button -->
+    <div class="mt-3 flex justify-end">
+        <button type="button"
+                data-key="${key}"
+                onclick="assignRider('${key}')"
+                class="mobile-confirm-btn bg-yellow-500 text-black px-6 py-2 rounded text-xs font-bold">
+            CONFIRM
+        </button>
+    </div>
+</div>
+                    `;
+                });
+            }
+        });
+
+        // --- EXISTING LOGIC PRESERVED ---
+        window.handleStatus = (key, status) => {
+            if(status === 'Out for Delivery') document.getElementById(`rider-form-${key}`).classList.remove('hidden');
+            else {
+                document.getElementById(`rider-form-${key}`).classList.add('hidden');
+                update(ref(db, 'orders/' + key), { status: status });
+            }
+        };
+
+        window.assignRider = (key) => {
+            const name = document.getElementById(`r-name-${key}`).value;
+            const phone = document.getElementById(`r-phone-${key}`).value;
+            if(!name || !phone) return alert("Enter details");
+            update(ref(db, 'orders/' + key), { status: 'Out for Delivery', riderName: name, riderPhone: phone });
+            document.getElementById(`rider-form-${key}`).classList.add('hidden');
+        };
+
+        // --- PRODUCTS ---
+        window.addProduct = () => {
+            const name = document.getElementById('p-name').value;
+            const price = document.getElementById('p-price').value;
+            const img = document.getElementById('p-img').value;
+            const desc = document.getElementById('p-desc').value;
+            if(!name) return;
+            push(ref(db, 'products'), { name, price, img, desc, active: true });
+        };
+
+        onValue(ref(db, 'products'), (snapshot) => {
+            const div = document.getElementById('products-list');
+            div.innerHTML = "";
+            const data = snapshot.val();
+            if(data) {
+                Object.entries(data).forEach(([key, p]) => {
+                    div.innerHTML += `
+                        <div class="bg-white p-3 rounded border flex gap-3 relative">
+                            <img src="${p.img}" class="w-16 h-16 rounded object-cover">
+                            <div><div class="font-bold">${p.name}</div><div class="text-sm">₹${p.price}</div>
+                            <button onclick="remove(ref(db, 'products/${key}'))" class="text-red-500 text-xs mt-1 underline">Remove</button></div>
+                        </div>
+                    `;
+                });
+            }
+        });
+
+        // --- BANNERS ---
+        window.addBanner = () => {
+            const img = document.getElementById('b-img').value;
+            const link = document.getElementById('b-link').value;
+            if(!img) return;
+            push(ref(db, 'banners'), { imgUrl: img, link: link, active: true });
+        };
+        
+        onValue(ref(db, 'banners'), (snap) => {
+            const div = document.getElementById('banners-list');
+            div.innerHTML = "";
+            const data = snap.val();
+            if(data) Object.entries(data).forEach(([key, b]) => div.innerHTML += `<div class="bg-white p-2 border flex justify-between"><img src="${b.imgUrl}" class="h-10 w-20 object-cover"><button onclick="remove(ref(db, 'banners/${key}'))" class="text-red-500">Del</button></div>`);
+        });
+
+        // --- REVIEWS ---
+        onValue(ref(db, 'reviews'), (snap) => {
+            const div = document.getElementById('admin-reviews-list');
+            div.innerHTML = "";
+            const data = snap.val();
+            if(data) {
+                Object.values(data).forEach(r => {
+                    div.innerHTML += `
+                        <div class="bg-white p-4 rounded border">
+                            <div class="flex justify-between font-bold text-sm">
+                                <span>${r.userName}</span>
+                                <span class="text-yellow-500">${"★".repeat(r.rating)}</span>
+                            </div>
+                            <p class="text-xs text-gray-600 mt-1">"${r.comment}"</p>
+                        </div>
+                    `;
+                });
+            }
+        });
+
+        // 🟢 MOBILE FIX: Global Delegated Listener for Rider Confirmation
+        // This ensures touches are caught even if inline onclick fails on some mobile views
+        document.addEventListener('click', function(e) {
+            if(e.target && e.target.classList.contains('mobile-confirm-btn')) {
+                // Prevent default form submissions if any
+                e.preventDefault();
+                // Get the ID
+                const key = e.target.getAttribute('data-key');
+                // Execute existing function
+                assignRider(key);
+            }
+        });
+
+    </script>
+</body>
+</html>
