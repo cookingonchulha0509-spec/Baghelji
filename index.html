@@ -2,265 +2,842 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Bhaghel Ji</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Riser Electronic App</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 900: '#1e3a8a' },
+                        dark: { 900: '#0B0F19', 800: '#151B2B' }
+                    },
+                    backgroundImage: {
+                        'tech-pattern': "url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop')",
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        :root { --sidebar: #0F0F0F; --gold: #F59E0B; }
-        body { font-family: 'Segoe UI', sans-serif; background: #F3F4F6; }
-        .nav-item.active { background: #1F1F1F; color: var(--gold); border-right: 3px solid var(--gold); }
+        /* APP DEFAULTS */
+        body { background-color: #f8fafc; color: #1e293b; -webkit-font-smoothing: antialiased; padding-bottom: 80px; /* Space for Bottom Nav */ }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Outfit', sans-serif; }
+        
+        /* NO SELECT (App Feel) */
+        * { -webkit-tap-highlight-color: transparent; user-select: none; }
+        input, textarea { user-select: text; }
+
+        /* SCROLLBAR HIDDEN (Clean App Look) */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        
+        /* SECTIONS */
+        .section-view { display: none; opacity: 0; transition: opacity 0.3s ease; padding-top: 60px; /* Space for Top Bar */ }
+        .section-view.active { display: block; opacity: 1; }
+
+        /* POLICY SECTION overrides */
+        #view-policy { padding-top: 0 !important; padding-bottom: 0 !important; background: white; z-index: 60; position: fixed; inset: 0; overflow-y: auto; }
+        
+        /* SPLASH SCREEN */
+        #splash-screen { position: fixed; inset: 0; z-index: 9999; background: #0B0F19; display: flex; justify-content: center; align-items: center; transition: opacity 0.5s ease; }
+        .splash-logo { font-size: 3rem; color: white; animation: pulse 2s infinite; }
+
+        /* BOTTOM NAV */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: white; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-around; padding: 12px 0; z-index: 50; padding-bottom: max(12px, env(safe-area-inset-bottom)); box-shadow: 0 -4px 20px rgba(0,0,0,0.03); transition: transform 0.3s ease; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; font-size: 10px; font-weight: 600; transition: all 0.2s; width: 60px; }
+        .nav-item i { font-size: 20px; margin-bottom: 2px; transition: transform 0.2s; }
+        .nav-item.active { color: #2563eb; }
+        .nav-item.active i { transform: translateY(-2px); }
+        .bottom-nav.hidden-nav { transform: translateY(100%); }
+        
+        /* TOP BAR */
+        .app-bar { position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,0,0,0.05); z-index: 40; display: flex; align-items: center; justify-content: space-between; px-4; transition: all 0.3s; }
+        
+        /* TIMELINE & UTILS */
+        .timeline-item { position: relative; padding-left: 24px; padding-bottom: 24px; border-left: 2px solid #e2e8f0; }
+        .timeline-item:last-child { border-left: transparent; }
+        .timeline-dot { position: absolute; left: -6px; top: 0; width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1; }
+        .timeline-item.active .timeline-dot { background: #2563eb; box-shadow: 0 0 0 4px #dbeafe; width: 14px; height: 14px; left: -8px; border: none; }
+        .timeline-item.active { border-left-color: #2563eb; }
+
+        .btn-brand { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); transition: transform 0.1s; }
+        .btn-brand:active { transform: scale(0.96); }
+
+        /* LIGHTBOX */
+        .lightbox { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0, 0, 0, 0.95); justify-content: center; align-items: center; }
+        .lightbox.active { display: flex; animation: fadeIn 0.3s; }
+        .lightbox img { max-width: 100%; max-height: 80vh; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="flex flex-col min-h-screen font-sans overflow-x-hidden">
 
-    <!-- SIDEBAR (Mobile Responsive) -->
-    <aside id="sidebar" class="w-64 bg-black text-gray-400 flex flex-col transition-all duration-300 hidden md:flex h-full fixed md:relative z-50">
-        <div class="p-6">
-            <h1 class="text-2xl font-bold text-white tracking-wider">BHAGHEL<span class="text-yellow-500">JI</span></h1>
-            <p class="text-xs mt-1 opacity-50">ADMIN DASHBOARD</p>
+    <!-- CONFIGURATION -->
+    <script>
+        const SOCIAL_URLS = {
+            instagram: "https://instagram.com/riser_electronic",
+            youtube: "https://youtube.com/@riser_electronic",
+            telegram: "https://t.me/riser_electronic",
+            whatsapp: "https://wa.me/919540628921"
+        };
+    </script>
+
+    <!-- SPLASH SCREEN -->
+    <div id="splash-screen">
+        <div class="flex flex-col items-center">
+            <div class="w-20 h-20 bg-brand-600 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-brand-500/50 mb-4 animate-bounce">
+                <i class="fa-solid fa-bolt text-4xl"></i>
+            </div>
+            <h1 class="text-3xl font-heading font-black text-white tracking-tight">RISER</h1>
+            <p class="text-xs text-brand-500 font-bold tracking-[0.3em] uppercase mt-1">Electronic</p>
         </div>
-        <nav class="flex-1 mt-6 space-y-1">
-            <button onclick="nav('orders')" id="nav-orders" class="nav-item w-full text-left px-6 py-4 hover:bg-white/5 flex gap-3 active"><i class="fa-solid fa-box w-5"></i> Orders</button>
-            <button onclick="nav('products')" id="nav-products" class="nav-item w-full text-left px-6 py-4 hover:bg-white/5 flex gap-3"><i class="fa-solid fa-tag w-5"></i> Products</button>
-            <button onclick="nav('banners')" id="nav-banners" class="nav-item w-full text-left px-6 py-4 hover:bg-white/5 flex gap-3"><i class="fa-solid fa-images w-5"></i> Banners</button>
-            <button onclick="nav('reviews')" id="nav-reviews" class="nav-item w-full text-left px-6 py-4 hover:bg-white/5 flex gap-3"><i class="fa-solid fa-star w-5"></i> Reviews</button>
-        </nav>
-        <button onclick="document.getElementById('sidebar').classList.add('hidden')" class="md:hidden p-4 text-center text-red-500">Close Menu</button>
-    </aside>
+    </div>
 
-    <!-- MAIN CONTENT -->
-    <main class="flex-1 flex flex-col overflow-hidden relative w-full">
-        <!-- Mobile Header -->
-        <header class="md:hidden bg-black text-white p-4 flex justify-between items-center z-40 shadow-md">
-            <span class="font-bold">BHAGHEL JI</span>
-            <button onclick="document.getElementById('sidebar').classList.remove('hidden')"><i class="fa-solid fa-bars"></i></button>
-        </header>
+    <!-- 📜 PRIVACY POLICY / ENTRY SCREEN (New) -->
+    <section id="view-policy" class="section-view bg-white">
+        <div class="min-h-screen flex flex-col relative pb-24">
+            <!-- Header Image -->
+            <div class="h-64 bg-dark-900 relative rounded-b-[3rem] overflow-hidden flex-shrink-0">
+                <div class="absolute inset-0 bg-tech-pattern bg-cover bg-center opacity-30"></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-dark-900 via-transparent to-transparent"></div>
+                <div class="absolute bottom-8 left-0 w-full text-center">
+                    <div class="w-16 h-16 bg-brand-600 rounded-2xl flex items-center justify-center text-white shadow-lg mx-auto mb-4">
+                        <i class="fa-solid fa-shield-halved text-2xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-heading font-bold text-white">Store Policy</h1>
+                    <p class="text-slate-400 text-xs">Terms & Conditions</p>
+                </div>
+            </div>
 
-        <div class="flex-1 overflow-y-auto p-4 md:p-8">
+            <!-- Content -->
+            <div class="px-6 py-8 flex-grow space-y-8">
+                
+                <!-- Notice 1 -->
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex-shrink-0 flex items-center justify-center"><i class="fa-solid fa-recycle"></i></div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-sm mb-1">Refurbished Products (Purane Samaan)</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed">
+                            All items sold here are certified refurbished, second-hand, or open-box. They are not brand new sealed units unless specified. <br>
+                            <span class="text-orange-600 font-medium italic">Yahan milne wale sabhi products purane ya refurbished hain.</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Notice 2 -->
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex-shrink-0 flex items-center justify-center"><i class="fa-solid fa-money-bill-wave"></i></div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-sm mb-1">Cash on Delivery (COD) Only</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed">
+                            For your safety, we only accept Cash on Delivery. Pay only when you receive the item. <br>
+                            <span class="text-green-600 font-medium italic">Payment delivery boy ko item milne ke baad hi karein.</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Notice 3 -->
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex-shrink-0 flex items-center justify-center"><i class="fa-solid fa-rotate-left"></i></div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-sm mb-1">7 Days Replacement</h3>
+                        <p class="text-xs text-slate-500 leading-relaxed">
+                            If the product has a technical fault, you can request a replacement within 7 days. Video proof of unboxing is mandatory.<br>
+                            <span class="text-blue-600 font-medium italic">7 din ke andar replacement suvidha uplabdh hai.</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 text-[10px] text-slate-400 text-center leading-relaxed">
+                    By clicking "Agree & Continue", you acknowledge that you have read and understood the nature of goods sold on Riser Electronic App.
+                </div>
+            </div>
+
+            <!-- Sticky Bottom Button -->
+            <div class="fixed bottom-0 left-0 w-full bg-white p-4 border-t border-slate-100 z-50">
+                <button onclick="acceptPolicy()" class="w-full btn-brand text-white py-4 rounded-xl font-bold text-sm uppercase tracking-wide shadow-lg shadow-brand-500/30 active:scale-95 transition-transform flex items-center justify-center gap-2">
+                    <span>I Agree & Continue</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- TOP APP BAR -->
+    <header id="main-app-bar" class="app-bar px-4 shadow-sm" style="display:none;">
+        <div class="flex items-center gap-3" onclick="navigateTo('home')">
+            <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white shadow-md">
+                <i class="fa-solid fa-bolt text-sm"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-heading font-black tracking-tight text-slate-900 leading-none">RISER</h1>
+                <p class="text-[8px] text-brand-600 font-bold tracking-[0.2em] uppercase">Store App</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+             <button onclick="window.open(SOCIAL_URLS.whatsapp, '_blank')" class="w-8 h-8 rounded-full bg-green-50 text-green-600 flex items-center justify-center border border-green-100 active:bg-green-100 transition-colors">
+                <i class="fa-brands fa-whatsapp"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- CONTENT AREA -->
+    <main class="flex-grow relative w-full">
+
+        <!-- 🏠 HOME SECTION -->
+        <section id="view-home" class="section-view">
+            <!-- Hero -->
+            <div class="relative bg-dark-900 text-white overflow-hidden py-8 px-4 mb-6 rounded-b-[2rem] shadow-xl">
+                <div class="absolute inset-0 bg-tech-pattern bg-cover bg-center opacity-30"></div>
+                <div class="absolute inset-0 bg-gradient-to-b from-transparent to-dark-900/90"></div>
+                
+                <div class="relative z-10 text-center pt-4">
+                    <span class="inline-block px-3 py-1 bg-brand-500/20 border border-brand-500/30 rounded-full text-[10px] font-bold text-brand-300 uppercase tracking-wider mb-4">India's Trusted Store</span>
+                    <h2 class="text-3xl font-heading font-extrabold leading-tight mb-3">Premium Tech.<br><span class="text-brand-400">Smart Prices.</span></h2>
+                    
+                    <!-- Banner Slider -->
+                    <div class="mt-6 w-full aspect-[16/9] bg-slate-800 rounded-2xl overflow-hidden relative shadow-2xl ring-1 ring-white/10">
+                        <div id="banner-slider" class="flex transition-transform duration-700 h-full w-full"></div>
+                        <div id="banner-dots" class="absolute bottom-3 left-0 w-full flex justify-center gap-1.5 z-10"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trust Badges (New Added for Policy Clarity) -->
+            <div class="px-4 mb-8">
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm text-center flex flex-col items-center justify-center gap-1">
+                        <i class="fa-solid fa-boxes-packing text-brand-600 text-lg"></i>
+                        <span class="text-[9px] font-bold text-slate-600 uppercase">Refurbished</span>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm text-center flex flex-col items-center justify-center gap-1">
+                        <i class="fa-solid fa-check-double text-green-600 text-lg"></i>
+                        <span class="text-[9px] font-bold text-slate-600 uppercase">QC Tested</span>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm text-center flex flex-col items-center justify-center gap-1">
+                        <i class="fa-solid fa-truck-fast text-orange-600 text-lg"></i>
+                        <span class="text-[9px] font-bold text-slate-600 uppercase">COD Only</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products -->
+            <div class="px-4 pb-4" id="product-section">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h3 class="text-xl font-heading font-black text-slate-900">Latest Stock</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Updated Daily • Limited Units</p>
+                        <div class="h-1 w-12 bg-brand-600 mt-2 rounded-full"></div>
+                    </div>
+                </div>
+
+                <div id="product-grid" class="grid grid-cols-2 gap-3">
+                    <div class="col-span-full py-10 flex flex-col items-center justify-center text-slate-400">
+                        <i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-brand-500"></i>
+                        <p class="text-xs font-medium">Loading Inventory...</p>
+                    </div>
+                </div>
+            </div>
             
-            <!-- 📦 ORDERS TAB -->
-            <div id="tab-orders">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Live Orders</h2>
-                <div class="space-y-4" id="orders-list"></div>
-            </div>
-
-            <!-- 🍔 PRODUCTS TAB -->
-            <div id="tab-products" class="hidden space-y-6">
-                <h2 class="text-2xl font-bold text-gray-800">Products</h2>
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input id="p-name" placeholder="Name" class="border p-3 rounded bg-gray-50">
-                    <input id="p-price" type="number" placeholder="Price" class="border p-3 rounded bg-gray-50">
-                    <input id="p-img" placeholder="Image URL" class="border p-3 rounded bg-gray-50 md:col-span-2">
-                    <textarea id="p-desc" placeholder="Desc" class="border p-3 rounded bg-gray-50 md:col-span-2"></textarea>
-                    <button onclick="addProduct()" class="bg-black text-white py-3 rounded font-bold md:col-span-2">ADD PRODUCT</button>
+            <!-- App Footer Info -->
+            <div class="p-6 text-center border-t border-slate-100 mt-4 bg-white">
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Riser Certified • Safe Shipping</p>
+                <div class="flex justify-center gap-4 mt-4 text-slate-300 text-lg">
+                    <i class="fa-brands fa-instagram" onclick="window.open(SOCIAL_URLS.instagram)"></i>
+                    <i class="fa-brands fa-youtube" onclick="window.open(SOCIAL_URLS.youtube)"></i>
+                    <i class="fa-brands fa-telegram" onclick="window.open(SOCIAL_URLS.telegram)"></i>
                 </div>
-                <div id="products-list" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
+                <p class="text-[9px] text-slate-300 mt-4">v2.1.0 Mobile App Build</p>
             </div>
+        </section>
 
-            <!-- 🖼️ BANNERS TAB -->
-            <div id="tab-banners" class="hidden space-y-6">
-                <h2 class="text-2xl font-bold text-gray-800">Banners</h2>
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-3">
-                    <input id="b-img" placeholder="Banner Image URL" class="border p-3 rounded flex-1 bg-gray-50">
-                    <input id="b-link" placeholder="Redirect Link (Optional)" class="border p-3 rounded flex-1 bg-gray-50">
-                    <button onclick="addBanner()" class="bg-yellow-500 text-black font-bold px-6 rounded">ADD</button>
+        <!-- 🛍️ PRODUCT DETAIL -->
+        <section id="view-product" class="section-view bg-white min-h-screen">
+            <div class="px-4 py-4">
+                <button onclick="goBack()" class="mb-4 inline-flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wide bg-slate-50 px-3 py-2 rounded-full">
+                    <i class="fa-solid fa-arrow-left"></i> Back
+                </button>
+
+                <div class="space-y-6">
+                    <!-- Image -->
+                    <div class="aspect-square bg-slate-50 rounded-3xl overflow-hidden border border-slate-100 relative p-6 flex items-center justify-center" onclick="openLightbox(document.getElementById('detail-img').src)">
+                        <img id="detail-img" class="max-w-full max-h-full object-contain mix-blend-multiply">
+                        <div class="absolute bottom-4 right-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full text-[10px] font-bold shadow-sm text-slate-600">
+                            <i class="fa-solid fa-expand"></i> Zoom
+                        </div>
+                    </div>
+
+                    <!-- Info -->
+                    <div>
+                        <h2 id="detail-name" class="text-2xl font-heading font-black text-slate-900 leading-tight"></h2>
+                        <div class="flex items-center gap-3 mt-2">
+                            <p id="detail-price" class="text-3xl font-heading font-black text-brand-600 tracking-tight"></p>
+                            <span class="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">Best Price</span>
+                        </div>
+                        <div class="flex items-center gap-2 mt-2 text-yellow-400 text-xs">
+                            <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star-half-stroke"></i>
+                            <span class="text-slate-400 text-[10px] ml-1">(Verified)</span>
+                        </div>
+                    </div>
+
+                    <!-- Desc -->
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <h5 class="font-bold text-slate-900 mb-2 text-sm">Description</h5>
+                        <p id="detail-desc" class="whitespace-pre-line text-xs text-slate-600 leading-relaxed"></p>
+                    </div>
+
+                    <!-- Checkout Form -->
+                    <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-lg shadow-slate-100 relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-500 to-purple-500"></div>
+                        <h4 class="font-bold text-slate-900 mb-4 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-truck-fast text-brand-600"></i> Delivery Details
+                        </h4>
+
+                        <!-- Address Toggle -->
+                        <div id="address-toggle-container" class="hidden mb-4 p-1 bg-slate-100 rounded-lg flex">
+                            <label class="flex-1 text-center py-2 text-[10px] font-bold text-slate-500 rounded-md transition-all" id="btn-saved" onclick="toggleAddressMode('saved')">SAVED</label>
+                            <label class="flex-1 text-center py-2 text-[10px] font-bold text-slate-500 rounded-md transition-all" id="btn-new" onclick="toggleAddressMode('new')">NEW</label>
+                        </div>
+
+                        <div class="space-y-3">
+                            <input id="order-name" placeholder="Full Name" class="w-full p-3 bg-slate-50 rounded-xl text-xs font-medium border border-slate-200 focus:border-brand-500 outline-none">
+                            <input id="order-phone" type="tel" placeholder="Mobile Number" class="w-full p-3 bg-slate-50 rounded-xl text-xs font-medium border border-slate-200 focus:border-brand-500 outline-none">
+                            <textarea id="order-address" placeholder="Full Address with Pincode" class="w-full p-3 bg-slate-50 rounded-xl text-xs font-medium border border-slate-200 focus:border-brand-500 outline-none h-20 resize-none"></textarea>
+                            <input id="order-map" placeholder="Google Map Link (Optional)" class="w-full p-3 bg-slate-50 rounded-xl text-xs font-medium border border-slate-200 focus:border-brand-500 outline-none">
+                            
+                            <button onclick="placeOrder()" class="w-full btn-brand text-white py-3.5 rounded-xl font-bold text-sm uppercase tracking-wide shadow-lg shadow-brand-500/30 active:scale-95 transition-transform mt-2">
+                                Place Order (COD)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Reviews -->
+                    <div class="pt-4 border-t border-slate-100 pb-8">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-base text-slate-900">Reviews</h3>
+                            <button onclick="toggleReviewForm()" class="text-[10px] font-bold bg-slate-100 text-slate-700 px-3 py-1.5 rounded-full">Write</button>
+                        </div>
+                        
+                        <div id="review-form" class="hidden bg-slate-50 p-4 rounded-xl mb-4 border border-slate-200">
+                            <div class="flex gap-2 mb-3 justify-center" id="star-container">
+                                <i class="fa-solid fa-star text-2xl text-gray-200" onclick="rate(1)"></i>
+                                <i class="fa-solid fa-star text-2xl text-gray-200" onclick="rate(2)"></i>
+                                <i class="fa-solid fa-star text-2xl text-gray-200" onclick="rate(3)"></i>
+                                <i class="fa-solid fa-star text-2xl text-gray-200" onclick="rate(4)"></i>
+                                <i class="fa-solid fa-star text-2xl text-gray-200" onclick="rate(5)"></i>
+                            </div>
+                            <textarea id="rev-comment" placeholder="Your experience..." class="w-full p-3 text-xs rounded-lg border border-slate-300 mb-3 h-20"></textarea>
+                            <button onclick="submitReview()" class="w-full bg-slate-900 text-white py-2.5 rounded-lg font-bold text-xs">Submit</button>
+                        </div>
+
+                        <div id="reviews-container" class="space-y-3"></div>
+                    </div>
                 </div>
-                <div id="banners-list" class="space-y-3"></div>
             </div>
+        </section>
 
-            <!-- ⭐ REVIEWS TAB -->
-            <div id="tab-reviews" class="hidden space-y-6">
-                <h2 class="text-2xl font-bold text-gray-800">User Reviews</h2>
-                <div id="admin-reviews-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        <!-- 📦 ORDERS SECTION -->
+        <section id="view-orders" class="section-view bg-slate-50 min-h-screen">
+            <div class="px-4 py-6">
+                <h2 class="text-2xl font-heading font-black text-slate-900 mb-1">My Orders</h2>
+                <p class="text-slate-500 text-xs mb-6">Track your shipments in real-time.</p>
+                <div id="orders-list" class="space-y-4 padding-bottom-20"></div>
             </div>
+        </section>
 
-        </div>
+        <!-- 👤 PROFILE SECTION -->
+        <section id="view-profile" class="section-view bg-white min-h-screen">
+            <div class="px-4 py-8 flex flex-col items-center">
+                <div class="w-24 h-24 rounded-full bg-slate-50 border-2 border-slate-100 flex items-center justify-center text-3xl text-slate-300 mb-4 shadow-inner">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <h3 id="profile-name" class="text-xl font-bold text-slate-900">Guest User</h3>
+                <p id="profile-phone" class="text-xs text-slate-500 bg-slate-100 px-3 py-1 rounded-full mt-2 font-mono">Not Logged In</p>
+
+                <div class="w-full mt-10 space-y-3">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-2">Support</p>
+                    <button onclick="window.open(SOCIAL_URLS.whatsapp, '_blank')" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 active:bg-slate-100 transition-colors">
+                        <div class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><i class="fa-brands fa-whatsapp"></i></div>
+                        <span class="font-bold text-sm text-slate-700">Chat on WhatsApp</span>
+                    </button>
+                    <button onclick="window.open(SOCIAL_URLS.telegram, '_blank')" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 active:bg-slate-100 transition-colors">
+                        <div class="w-8 h-8 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center"><i class="fa-brands fa-telegram"></i></div>
+                        <span class="font-bold text-sm text-slate-700">Telegram Channel</span>
+                    </button>
+                </div>
+
+                <div class="w-full mt-8">
+                     <button onclick="logout()" class="w-full p-4 rounded-2xl border border-red-100 text-red-500 font-bold text-sm active:bg-red-50 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-power-off"></i> Sign Out
+                    </button>
+                    <div class="text-center mt-6">
+                        <p class="text-[10px] text-slate-300">Riser Electronic • COD Policy Applied</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </main>
 
-    <!-- Firebase Logic -->
+    <!-- BOTTOM NAVIGATION (Hidden initially) -->
+    <nav id="bottom-nav" class="bottom-nav hidden-nav">
+        <button onclick="navigateTo('home')" class="nav-item active" id="nav-home">
+            <i class="fa-solid fa-house"></i>
+            <span>Home</span>
+        </button>
+        <!-- 'Shop' merged into Home, button removed -->
+        <button onclick="navigateTo('orders')" class="nav-item" id="nav-orders">
+            <i class="fa-solid fa-box-open"></i>
+            <span>Orders</span>
+        </button>
+        <button onclick="navigateTo('profile')" class="nav-item" id="nav-profile">
+            <i class="fa-regular fa-user"></i>
+            <span>Profile</span>
+        </button>
+    </nav>
+
+    <!-- LIGHTBOX -->
+    <div id="lightbox" class="lightbox" onclick="closeLightbox()">
+        <button class="absolute top-6 right-6 text-white text-3xl p-4">&times;</button>
+        <img id="lightbox-img" src="" onclick="event.stopPropagation()">
+    </div>
+
+    <!-- FIREBASE & LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, push, onValue, update, remove, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
-  apiKey: "AIzaSyBIM-xshgfARBl1kTYLmWDNd_M3-R6CdNQ",
-  authDomain: "pro-tournamnet.firebaseapp.com",
-  databaseURL: "https://pro-tournamnet-default-rtdb.firebaseio.com",
-  projectId: "pro-tournamnet",
-  storageBucket: "pro-tournamnet.firebasestorage.app",
-  messagingSenderId: "538341014492",
-  appId: "1:538341014492:web:1ecde24f3feec3bb5f6d19"
-};
-
+            apiKey: "AIzaSyBIM-xshgfARBl1kTYLmWDNd_M3-R6CdNQ",
+            authDomain: "pro-tournamnet.firebaseapp.com",
+            databaseURL: "https://pro-tournamnet-default-rtdb.firebaseio.com",
+            projectId: "pro-tournamnet",
+            storageBucket: "pro-tournamnet.firebasestorage.app",
+            messagingSenderId: "538341014492",
+            appId: "1:538341014492:web:1ecde24f3feec3bb5f6d19"
+        };
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        window.nav = (tab) => {
-            document.querySelectorAll('div[id^="tab-"]').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`tab-${tab}`).classList.remove('hidden');
-            if(window.innerWidth < 768) document.getElementById('sidebar').classList.add('hidden');
+        // --- SPLASH SCREEN & POLICY CHECK ---
+        setTimeout(() => {
+            const splash = document.getElementById('splash-screen');
+            splash.style.opacity = '0';
+            setTimeout(() => splash.style.display = 'none', 500);
+
+            // Check Policy
+            checkPolicyAndRoute();
+        }, 2000);
+
+        // --- STATE ---
+        let currentProd = {};
+        let currentRating = 0;
+        let userPhone = localStorage.getItem('riser_phone') || '';
+        let userName = localStorage.getItem('riser_name') || 'Guest';
+        let userAddress = localStorage.getItem('riser_addr') || '';
+
+        function updateProfileUI() {
+            if(userPhone) {
+                document.getElementById('profile-phone').innerText = userPhone;
+                document.getElementById('profile-name').innerText = userName;
+            }
+        }
+        updateProfileUI();
+
+        // --- NAVIGATION & BACK BUTTON (HISTORY API) ---
+        window.navigateTo = (viewId, scrollTargetId = null) => {
+            // Update History only if moving forward
+            if (history.state?.view !== viewId) {
+                history.pushState({ view: viewId }, null, "");
+            }
+            switchView(viewId, scrollTargetId);
         }
 
-        // --- ORDERS (FIXED RIDER LOGIC) ---
-        onValue(ref(db, 'orders'), (snapshot) => {
-            const list = document.getElementById('orders-list');
-            list.innerHTML = "";
-            const data = snapshot.val();
-            if(data) {
-                Object.entries(data).reverse().forEach(([key, order]) => {
-                    const mapLink = order.mapLink ? `<a href="${order.mapLink}" target="_blank" class="text-blue-600 underline text-xs"><i class="fa-solid fa-map-location-dot"></i> Open Map</a>` : '';
-                    const riderBadge = (order.status === 'Out for Delivery' && order.riderName) 
-                        ? `<div class="mt-2 text-xs bg-orange-100 text-orange-800 p-2 rounded"><strong>Rider:</strong> ${order.riderName} (${order.riderPhone})</div>` : '';
+        function switchView(viewId, scrollTargetId) {
+            // Hide all
+            document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
+            // Show target
+            const target = document.getElementById(`view-${viewId}`);
+            if(target) target.classList.add('active');
+            
+            // Handle Navigation UI
+            const navBar = document.getElementById('bottom-nav');
+            const topBar = document.getElementById('main-app-bar');
 
-                    list.innerHTML += `
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                            <div class="p-4 flex flex-col md:flex-row gap-4">
-                                <img src="${order.productImg}" class="w-16 h-16 rounded bg-gray-50 object-cover">
-                                <div class="flex-1">
-                                    <h4 class="font-bold">${order.productName}</h4>
-                                    <div class="text-xs text-gray-500">₹${order.price} • ${order.userName} • ${order.phone}</div>
-                                    <div class="text-xs text-gray-400 mt-1">${order.address}</div>
-                                    ${mapLink}
-                                </div>
-                                <div class="md:w-64 flex flex-col gap-2">
-                                    <div class="flex justify-between">
-                                        <span class="px-2 py-1 rounded text-xs font-bold bg-gray-100">${order.status}</span>
-                                        <button onclick="remove(ref(db, 'orders/${key}'))" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
-                                    </div>
-                                    <select onchange="handleStatus('${key}', this.value)" class="text-xs border p-2 rounded bg-gray-50">
-                                        <option value="" disabled selected>Change Status</option>
-                                        <option value="Packed">Packed</option>
-                                        <option value="Shipped">Shipped</option>
-                                        <option value="Out for Delivery">Out for Delivery</option>
-                                        <option value="Delivered">Delivered</option>
-                                    </select>
-                                    ${riderBadge}
-                                </div>
-                            </div>
-                          <!-- MOBILE + PC FIXED RIDER FORM -->
-<div id="rider-form-${key}" 
-     class="hidden bg-gray-900 p-4 relative z-10">
-
-    <!-- Inputs -->
-    <div class="flex flex-col md:flex-row gap-2">
-        <input id="r-name-${key}" 
-               placeholder="Rider Name"
-               class="flex-1 p-2 rounded text-xs bg-gray-800 text-white border border-gray-700">
-
-        <input id="r-phone-${key}" 
-               placeholder="Phone"
-               class="flex-1 p-2 rounded text-xs bg-gray-800 text-white border border-gray-700">
-    </div>
-
-    <!-- Confirm Button -->
-    <div class="mt-3 flex justify-end">
-        <button type="button"
-                data-key="${key}"
-                onclick="assignRider('${key}')"
-                class="mobile-confirm-btn bg-yellow-500 text-black px-6 py-2 rounded text-xs font-bold">
-            CONFIRM
-        </button>
-    </div>
-</div>
-                    `;
-                });
+            if (viewId === 'policy') {
+                navBar.classList.add('hidden-nav');
+                topBar.style.display = 'none';
+            } else {
+                navBar.classList.remove('hidden-nav');
+                topBar.style.display = 'flex';
             }
-        });
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'auto' });
+            
+            // Handle Bottom Nav Highlight
+            document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+            const navId = viewId === 'product' ? 'nav-home' : `nav-${viewId}`; // Map product back to home nav
+            const navBtn = document.getElementById(navId);
+            if(navBtn) navBtn.classList.add('active');
 
-        // --- EXISTING LOGIC PRESERVED ---
-        window.handleStatus = (key, status) => {
-            if(status === 'Out for Delivery') document.getElementById(`rider-form-${key}`).classList.remove('hidden');
-            else {
-                document.getElementById(`rider-form-${key}`).classList.add('hidden');
-                update(ref(db, 'orders/' + key), { status: status });
+            if(scrollTargetId) {
+                setTimeout(() => document.getElementById(scrollTargetId)?.scrollIntoView({behavior:'smooth'}), 100);
             }
+            if(viewId === 'orders') loadOrders();
+        }
+
+        // --- POLICY LOGIC (NEW) ---
+        window.acceptPolicy = () => {
+            localStorage.setItem('riser_policy_accepted_v2', 'true');
+            // Navigate to home properly
+            history.pushState({ view: 'home' }, null, "");
+            switchView('home');
         };
 
-        window.assignRider = (key) => {
-            const name = document.getElementById(`r-name-${key}`).value;
-            const phone = document.getElementById(`r-phone-${key}`).value;
-            if(!name || !phone) return alert("Enter details");
-            update(ref(db, 'orders/' + key), { status: 'Out for Delivery', riderName: name, riderPhone: phone });
-            document.getElementById(`rider-form-${key}`).classList.add('hidden');
-        };
-
-        // --- PRODUCTS ---
-        window.addProduct = () => {
-            const name = document.getElementById('p-name').value;
-            const price = document.getElementById('p-price').value;
-            const img = document.getElementById('p-img').value;
-            const desc = document.getElementById('p-desc').value;
-            if(!name) return;
-            push(ref(db, 'products'), { name, price, img, desc, active: true });
-        };
-
-        onValue(ref(db, 'products'), (snapshot) => {
-            const div = document.getElementById('products-list');
-            div.innerHTML = "";
-            const data = snapshot.val();
-            if(data) {
-                Object.entries(data).forEach(([key, p]) => {
-                    div.innerHTML += `
-                        <div class="bg-white p-3 rounded border flex gap-3 relative">
-                            <img src="${p.img}" class="w-16 h-16 rounded object-cover">
-                            <div><div class="font-bold">${p.name}</div><div class="text-sm">₹${p.price}</div>
-                            <button onclick="remove(ref(db, 'products/${key}'))" class="text-red-500 text-xs mt-1 underline">Remove</button></div>
-                        </div>
-                    `;
-                });
+        function checkPolicyAndRoute() {
+            const accepted = localStorage.getItem('riser_policy_accepted_v2');
+            if (accepted) {
+                // If accepted, replace state to Home so back button exits app (normal behavior)
+                history.replaceState({ view: 'home' }, null, "");
+                switchView('home');
+            } else {
+                // If not accepted, replace state to Policy
+                history.replaceState({ view: 'policy' }, null, "");
+                switchView('policy');
             }
-        });
+        }
 
-        // --- BANNERS ---
-        window.addBanner = () => {
-            const img = document.getElementById('b-img').value;
-            const link = document.getElementById('b-link').value;
-            if(!img) return;
-            push(ref(db, 'banners'), { imgUrl: img, link: link, active: true });
+        // Handle Android Back Button
+        window.onpopstate = (event) => {
+            if (event.state && event.state.view) {
+                switchView(event.state.view);
+            } else {
+                // If no state (e.g. forced refresh or deep initial), fallback based on policy
+                checkPolicyAndRoute();
+            }
         };
         
-        onValue(ref(db, 'banners'), (snap) => {
-            const div = document.getElementById('banners-list');
-            div.innerHTML = "";
-            const data = snap.val();
-            if(data) Object.entries(data).forEach(([key, b]) => div.innerHTML += `<div class="bg-white p-2 border flex justify-between"><img src="${b.imgUrl}" class="h-10 w-20 object-cover"><button onclick="remove(ref(db, 'banners/${key}'))" class="text-red-500">Del</button></div>`);
+        window.goBack = () => {
+            history.back(); // Triggers popstate
+        }
+
+        window.logout = () => { localStorage.clear(); window.location.reload(); }
+        
+        window.openLightbox = (src) => {
+            document.getElementById('lightbox-img').src = src;
+            document.getElementById('lightbox').classList.add('active');
+        }
+        window.closeLightbox = () => {
+            document.getElementById('lightbox').classList.remove('active');
+        }
+
+        // --- BANNERS ---
+        onValue(ref(db, 'banners'), (snapshot) => {
+            const wrapper = document.getElementById('banner-slider');
+            const dots = document.getElementById('banner-dots');
+            wrapper.innerHTML = ""; dots.innerHTML = "";
+            const data = snapshot.val();
+            
+            if(data) {
+                const banners = Object.values(data).filter(b => b.active);
+                banners.forEach((b, idx) => {
+                    wrapper.innerHTML += `<img src="${b.imgUrl}" class="w-full h-full object-cover flex-shrink-0" onclick="if('${b.link}') window.open('${b.link}')">`;
+                    dots.innerHTML += `<div class="w-1.5 h-1.5 rounded-full bg-white/50 transition-all ${idx===0?'bg-white w-4':''}"></div>`;
+                });
+                
+                let i = 0;
+                setInterval(() => {
+                    i = (i + 1) % banners.length;
+                    wrapper.style.transform = `translateX(-${i * 100}%)`;
+                    Array.from(dots.children).forEach((d, index) => {
+                        d.className = index === i ? 'w-4 h-1.5 rounded-full bg-white transition-all' : 'w-1.5 h-1.5 rounded-full bg-white/50 transition-all';
+                    });
+                }, 4000);
+            }
         });
 
-        // --- REVIEWS ---
-        onValue(ref(db, 'reviews'), (snap) => {
-            const div = document.getElementById('admin-reviews-list');
-            div.innerHTML = "";
-            const data = snap.val();
+        // --- PRODUCTS ---
+        onValue(ref(db, 'products'), (snapshot) => {
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = "";
+            const data = snapshot.val();
             if(data) {
-                Object.values(data).forEach(r => {
-                    div.innerHTML += `
-                        <div class="bg-white p-4 rounded border">
-                            <div class="flex justify-between font-bold text-sm">
-                                <span>${r.userName}</span>
-                                <span class="text-yellow-500">${"★".repeat(r.rating)}</span>
+                Object.entries(data).forEach(([id, p]) => {
+                    const isActive = (p.active === true || p.active === "true");
+                    const opacity = isActive ? '' : 'opacity-60 grayscale pointer-events-none';
+                    const badge = isActive ? '' : `<div class="absolute top-2 right-2 bg-slate-900 text-white text-[9px] font-bold px-1.5 py-0.5 rounded z-10">SOLD</div>`;
+                    const cleanName = p.name.replace(/'/g, "\\'");
+                    const cleanDesc = p.desc.replace(/\n/g, '\\n').replace(/'/g, "\\'");
+
+                    grid.innerHTML += `
+                        <div onclick="openProduct('${id}', '${cleanName}', '${p.price}', '${cleanDesc}', '${p.img}')" 
+                             class="group bg-white rounded-2xl p-3 shadow-sm border border-slate-100 active:scale-95 transition-transform ${opacity} relative flex flex-col">
+                            ${badge}
+                            <div class="aspect-square bg-slate-50 rounded-xl overflow-hidden mb-3 relative flex items-center justify-center p-2">
+                                <img src="${p.img}" class="max-w-full max-h-full object-contain mix-blend-multiply">
                             </div>
-                            <p class="text-xs text-gray-600 mt-1">"${r.comment}"</p>
+                            <h3 class="font-bold text-slate-800 text-xs leading-tight mb-1 line-clamp-2 h-8">${p.name}</h3>
+                            <div class="mt-auto flex justify-between items-center">
+                                <span class="text-brand-600 font-bold text-sm">₹${p.price}</span>
+                                <span class="w-6 h-6 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center"><i class="fa-solid fa-plus text-[10px]"></i></span>
+                            </div>
                         </div>
                     `;
                 });
-            }
+            } else grid.innerHTML = "<div class='col-span-full text-center text-slate-400 py-10'>No products found.</div>";
         });
 
-        // 🟢 MOBILE FIX: Global Delegated Listener for Rider Confirmation
-        // This ensures touches are caught even if inline onclick fails on some mobile views
-        document.addEventListener('click', function(e) {
-            if(e.target && e.target.classList.contains('mobile-confirm-btn')) {
-                // Prevent default form submissions if any
-                e.preventDefault();
-                // Get the ID
-                const key = e.target.getAttribute('data-key');
-                // Execute existing function
-                assignRider(key);
+        // --- PRODUCT DETAILS ---
+        window.openProduct = (id, name, price, desc, img) => {
+            currentProd = { id, name, price, img };
+            document.getElementById('detail-img').src = img;
+            document.getElementById('detail-name').innerText = name;
+            document.getElementById('detail-price').innerText = `₹${price}`;
+            document.getElementById('detail-desc').innerText = desc || "Verified Refurbished Device.";
+            
+            // Address Toggle Logic
+            const toggleContainer = document.getElementById('address-toggle-container');
+            const btnSaved = document.getElementById('btn-saved');
+            const btnNew = document.getElementById('btn-new');
+            
+            if (userPhone && userAddress) {
+                toggleContainer.classList.remove('hidden');
+                // Set default to saved
+                toggleAddressMode('saved');
+            } else {
+                toggleContainer.classList.add('hidden');
+                toggleAddressMode('new');
             }
-        });
 
+            loadReviews(id);
+            navigateTo('product');
+        };
+
+        window.toggleAddressMode = (mode) => {
+            const btnSaved = document.getElementById('btn-saved');
+            const btnNew = document.getElementById('btn-new');
+            const nameInp = document.getElementById('order-name');
+            const phoneInp = document.getElementById('order-phone');
+            const addrInp = document.getElementById('order-address');
+
+            if (mode === 'saved') {
+                btnSaved.classList.replace('text-slate-500', 'text-white');
+                btnSaved.classList.add('bg-brand-600');
+                btnNew.classList.replace('text-white', 'text-slate-500');
+                btnNew.classList.remove('bg-brand-600');
+                
+                nameInp.value = userName; phoneInp.value = userPhone; addrInp.value = userAddress;
+            } else {
+                btnNew.classList.replace('text-slate-500', 'text-white');
+                btnNew.classList.add('bg-brand-600');
+                btnSaved.classList.replace('text-white', 'text-slate-500');
+                btnSaved.classList.remove('bg-brand-600');
+                
+                nameInp.value = ""; phoneInp.value = ""; addrInp.value = "";
+            }
+        }
+
+        function loadReviews(productId) {
+            const container = document.getElementById('reviews-container');
+            container.innerHTML = "<div class='text-center py-2 text-slate-400 text-xs'>Loading...</div>";
+            onValue(ref(db, 'reviews'), (snap) => {
+                const data = snap.val();
+                container.innerHTML = "";
+                if(data) {
+                    const reviews = Object.values(data).filter(r => r.productId === productId);
+                    if(!reviews.length) { container.innerHTML = "<div class='text-center text-xs text-slate-400'>No reviews yet.</div>"; return; }
+                    reviews.forEach(r => {
+                        container.innerHTML += `
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="font-bold text-xs text-slate-800">${r.userName}</span>
+                                    <div class="flex text-yellow-400 text-[8px]">${Array(5).fill(0).map((_,i) => i < r.rating ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star text-slate-300"></i>').join('')}</div>
+                                </div>
+                                <p class="text-[10px] text-slate-600">${r.comment}</p>
+                            </div>
+                        `;
+                    });
+                } else container.innerHTML = "<div class='text-center text-xs text-slate-400'>No reviews yet.</div>";
+            });
+        }
+
+        // --- NEW: TELEGRAM NOTIFICATION ---
+        async function sendTelegramNotification(orderData) {
+            const TG_BOT_TOKEN = "8293891021:AAEO9i8hWo-C-2TbD_nMdE1_ougLv_YXsuY";
+            const TG_CHAT_ID = "7247761514";
+
+            const message = `📦 *NEW ORDER RECEIVED!*\n\n` +
+                `👤 *Customer:* ${orderData.userName}\n` +
+                `📱 *Phone:* ${orderData.phone}\n` +
+                `🏠 *Address:* ${orderData.address}\n\n` +
+                `🛒 *Product:* ${orderData.productName}\n` +
+                `💰 *Price:* ₹${orderData.price}\n\n` +
+                `🔗 *Map:* ${orderData.mapLink || "N/A"}`;
+
+            try {
+                await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: TG_CHAT_ID,
+                        text: message,
+                        parse_mode: 'Markdown'
+                    })
+                });
+                console.log("Telegram Sent");
+            } catch (error) {
+                console.error("Telegram Error:", error);
+            }
+        }
+
+        // --- ORDER LOGIC ---
+        window.placeOrder = () => {
+            const name = document.getElementById('order-name').value.trim();
+            const phone = document.getElementById('order-phone').value.trim();
+            const address = document.getElementById('order-address').value.trim();
+            const mapLink = document.getElementById('order-map').value.trim();
+
+            if(!name || !phone || !address) return alert("Fill all details!");
+
+            localStorage.setItem('riser_phone', phone);
+            localStorage.setItem('riser_name', name);
+            localStorage.setItem('riser_addr', address);
+            userPhone = phone; userName = name; userAddress = address;
+            updateProfileUI();
+
+            const orderData = {
+                userName: name, phone: phone, address: address, mapLink: mapLink,
+                productId: currentProd.id, productName: currentProd.name, productImg: currentProd.img, price: currentProd.price,
+                status: 'Placed', timestamp: Date.now()
+            };
+
+            // Send Telegram Notification
+            sendTelegramNotification(orderData);
+
+            push(ref(db, 'orders'), orderData).then(() => {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                alert("Order Placed Successfully!");
+                navigateTo('orders');
+            });
+        };
+
+        window.toggleReviewForm = () => document.getElementById('review-form').classList.toggle('hidden');
+        window.rate = (n) => {
+            currentRating = n;
+            const stars = document.getElementById('star-container').children;
+            for(let i=0; i<5; i++) stars[i].className = i < n ? "fa-solid fa-star text-2xl text-yellow-400 transition-colors" : "fa-solid fa-star text-2xl text-gray-200 transition-colors";
+        }
+
+        window.submitReview = () => {
+            const comment = document.getElementById('rev-comment').value;
+            if(!userPhone) return alert("Order first to review!");
+            if(!currentRating) return alert("Select stars!");
+            push(ref(db, 'reviews'), {
+                productId: currentProd.id, userName: userName, rating: currentRating, comment: comment, createdAt: Date.now()
+            }).then(() => { alert("Review Submitted!"); toggleReviewForm(); });
+        }
+
+        // --- ORDERS LIST (UPDATED FOR FIX) ---
+        function getTimelineHTML(currentStatus) {
+            // UPDATED: Added 'Out for Delivery' as explicit step
+            const steps = ['Placed', 'Shipped', 'Out for Delivery', 'Delivered'];
+            
+            // FIX: Map DB Status to Index manually to prevent 'Out for Delivery' returning -1 (which defaulted to Placed)
+            let currentIndex = 0;
+            const s = currentStatus ? currentStatus.toString().toLowerCase() : '';
+
+            if (s === 'delivered') currentIndex = 3;
+            else if (s === 'out for delivery') currentIndex = 2;
+            else if (s === 'shipped' || s === 'in transit') currentIndex = 1;
+            else if (s === 'cancelled') currentIndex = -1; // Special case
+            else currentIndex = 0; // Placed, Confirmed, Packed, etc.
+
+            // Handle Cancelled Status
+            if (currentIndex === -1) {
+                return '<div class="pl-2 pt-2 text-red-500 font-bold text-xs"><i class="fa-solid fa-ban mr-1"></i> Order Cancelled</div>';
+            }
+
+            let html = '<div class="pl-2 pt-2 border-l border-slate-200 ml-1">';
+            steps.forEach((step, index) => {
+                const isActive = index <= currentIndex;
+                const color = isActive ? 'text-brand-600 font-bold' : 'text-slate-300';
+                const dot = isActive ? 'bg-brand-600 ring-4 ring-brand-100 z-10' : 'bg-slate-200';
+                
+                html += `<div class="relative pl-4 pb-4 last:pb-0">
+                    <div class="absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full ${dot}"></div>
+                    <p class="text-[10px] ${color}">${step}</p>
+                </div>`;
+            });
+            return html + '</div>';
+        }
+
+        function loadOrders() {
+            if(!userPhone) return document.getElementById('orders-list').innerHTML = "<div class='text-center py-10 text-slate-400 text-xs'>No active session.</div>";
+            
+            onValue(ref(db, 'orders'), (snapshot) => {
+                const list = document.getElementById('orders-list');
+                list.innerHTML = "";
+                const data = snapshot.val();
+                if(data) {
+                    const myOrders = Object.entries(data).filter(([k, v]) => v.phone === userPhone).reverse();
+                    if(!myOrders.length) { list.innerHTML = "<div class='text-center py-10 text-slate-400 text-xs'>No orders found.</div>"; return; }
+                    
+                    myOrders.forEach(([key, order]) => {
+                        let trackLink = order.liveTrackingLink ? `<a href="${order.liveTrackingLink}" target="_blank" class="block mt-3 bg-green-50 text-green-700 py-2 rounded-lg text-center text-xs font-bold border border-green-200">Track Live</a>` : '';
+                        
+                        // Delivery Boy Section - FIXED VARIABLES (riderName/riderPhone)
+                        let deliveryHtml = '';
+                        if (order.riderName && order.riderPhone) {
+                            deliveryHtml = `
+                                <div class="mt-3 pt-3 border-t border-slate-200 flex justify-between items-center">
+                                    <div>
+                                        <p class="text-[9px] font-bold text-slate-400 uppercase">Delivery Partner</p>
+                                        <p class="text-xs font-bold text-slate-800">${order.riderName}</p>
+                                    </div>
+                                    <a href="tel:${order.riderPhone}" class="bg-green-100 text-green-700 px-3 py-1.5 rounded-full text-[10px] font-bold flex items-center gap-1 active:scale-95 transition-transform">
+                                        <i class="fa-solid fa-phone"></i> Call
+                                    </a>
+                                </div>
+                            `;
+                        }
+
+                        list.innerHTML += `
+                            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                                <div class="flex gap-3 mb-3">
+                                    <img src="${order.productImg}" class="w-16 h-16 rounded-xl bg-slate-50 object-contain p-1 border border-slate-100">
+                                    <div>
+                                        <h4 class="font-bold text-sm text-slate-900 line-clamp-1">${order.productName}</h4>
+                                        <p class="text-brand-600 font-bold text-sm">₹${order.price}</p>
+                                        <p class="text-[10px] text-slate-400 mt-1">ID: ${key.slice(-6).toUpperCase()}</p>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-50 p-3 rounded-xl">
+                                    <p class="text-[9px] font-bold text-slate-400 uppercase mb-2">Status</p>
+                                    ${getTimelineHTML(order.status)}
+                                    ${trackLink}
+                                    ${deliveryHtml}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            });
+        }
     </script>
 </body>
 </html>
